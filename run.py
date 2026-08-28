@@ -96,6 +96,7 @@ def evaluate_rl_agent(use_dueling: bool, episodes: int, chaos: bool):
     controller.train_episodes(num_episodes=episodes, verbose=False)
 
     console.print(f"[bold green]📊 Evaluating {model_name} policy...[/bold green]")
+    controller.env.max_steps = 600
     state, _ = controller.env.reset()
     tp_list, drop_list, lat_list = [], [], []
     telemetry_history = []

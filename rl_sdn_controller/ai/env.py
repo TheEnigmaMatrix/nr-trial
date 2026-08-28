@@ -109,13 +109,13 @@ class SDNEnv(gym.Env):
         # Normalized metric components in [0, 1]
         norm_tp = total_tx_mbps / 30.0
         norm_drop = overall_drop_pct / 100.0
-        norm_lat = min(1.0, avg_lat_ms / 0.15) # Calibrated for sub-millisecond per-hop latencies (0.05ms - 0.15ms)
+        norm_lat = min(1.0, avg_lat_ms / 30.0) # Realistic physical link latencies (15ms - 30ms)
 
         # Balanced Pareto Multi-Objective Reward:
-        # +1.0 * Throughput (deliver max bits)
-        # -5.0 * Packet Drop Rate (strongly avoid queue overflow & down link drops)
-        # -4.5 * Latency (strongly prefer shortest propagation delay path when operational)
-        reward = (1.0 * norm_tp) - (5.0 * norm_drop) - (4.5 * norm_lat)
+        # +2.0 * Throughput (reward max bits delivered)
+        # -10.0 * Packet Drop Rate (heavily penalize packet loss)
+        # -6.0 * Latency (strongly prefer shortest 5.0ms Path A when operational)
+        reward = (2.0 * norm_tp) - (10.0 * norm_drop) - (6.0 * norm_lat)
 
         terminated = self.current_step >= self.max_steps
         truncated = False

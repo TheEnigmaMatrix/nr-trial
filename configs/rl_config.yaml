@@ -1,14 +1,14 @@
 # Reinforcement Learning & Control Plane Hyperparameters
 
 agent:
-  learning_rate: 0.0005
+  learning_rate: 0.001
   gamma: 0.99
-  epsilon_start: 0.2
+  epsilon_start: 0.15
   epsilon_end: 0.01
-  epsilon_decay: 0.95
+  epsilon_decay: 0.90
   buffer_capacity: 10000
   batch_size: 64
-  target_update_freq: 5
+  target_update_freq: 2
   hidden_dims: [128, 128]
 
 control_plane:

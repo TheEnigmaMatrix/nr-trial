@@ -49,6 +49,7 @@ def evaluate_rl_model(use_dueling: bool, episodes: int, chaos: bool = True):
     controller.train_episodes(num_episodes=episodes, verbose=False)
 
     # Evaluation phase
+    controller.env.max_steps = 600
     state, _ = controller.env.reset()
     tp_list, drop_list, lat_list = [], [], []
     done = False
