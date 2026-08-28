@@ -23,13 +23,13 @@ links:
     dst: r1
     capacity: 1000   # Mbps (1 Gbps)
     latency: 5000    # microseconds (5.0 ms)
-    max_queue_packets: 1000
+    max_queue_packets: 100
 
   - src: r1
     dst: h1
     capacity: 1000
     latency: 5000
-    max_queue_packets: 1000
+    max_queue_packets: 100
 
   # Path A: r1 -> r2 -> r4 (Primary shortest path: 5ms + 5ms = 10ms core delay)
   - src: r1
@@ -62,10 +62,10 @@ links:
     dst: h2
     capacity: 1000
     latency: 5000    # microseconds (5.0 ms)
-    max_queue_packets: 1000
+    max_queue_packets: 100
 
   - src: h2
     dst: r4
     capacity: 1000
     latency: 5000
-    max_queue_packets: 1000
+    max_queue_packets: 100
