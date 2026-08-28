@@ -98,10 +98,25 @@ class SDNEnv(gym.Env):
 
         # 4. Compute Reward R
         total_tx_mbps = sum((st.tx_bytes * 8.0 / 1_000_000.0) / self.update_interval_sec for st in telemetry.values())
-        avg_drop_pct = np.mean([st.drop_rate_pct for st in telemetry.values()]) if telemetry else 0.0
-        avg_lat_ms = np.mean([st.avg_latency_ms for st in telemetry.values() if st.avg_latency_ms > 0]) if telemetry else 0.0
+        total_tx_p = sum(st.tx_packets for st in telemetry.values())
+        total_drop_p = sum(st.dropped_packets for st in telemetry.values())
+        total_arrived = total_tx_p + total_drop_p
+        overall_drop_pct = (total_drop_p / total_arrived * 100.0) if total_arrived > 0 else 0.0
+        max_drop_pct = max([st.drop_rate_pct for st in telemetry.values()]) if telemetry else 0.0
 
-        reward = (self.w_throughput * total_tx_mbps) + (self.w_drop * (avg_drop_pct / 100.0)) + (self.w_latency * avg_lat_ms)
+        valid_lats = [st.avg_latency_ms for st in telemetry.values() if st.avg_latency_ms > 0]
+        avg_lat_ms = float(np.mean(valid_lats)) if valid_lats else 0.0
+
+        max_util_norm = max([st.utilization_pct / 100.0 for st in telemetry.values()]) if telemetry else 0.0
+
+        # Multi-objective Pareto Reward: High throughput + strong drop penalty + queueing latency penalty + utilization balance
+        reward = (
+            (self.w_throughput * total_tx_mbps)
+            - (200.0 * (overall_drop_pct / 100.0))
+            - (100.0 * (max_drop_pct / 100.0))
+            - (0.3 * avg_lat_ms)
+            - (15.0 * (max_util_norm ** 2))
+        )
 
         terminated = self.current_step >= self.max_steps
         truncated = False
@@ -109,7 +124,7 @@ class SDNEnv(gym.Env):
         info = {
             "step": self.current_step,
             "total_throughput_mbps": total_tx_mbps,
-            "avg_drop_pct": avg_drop_pct,
+            "avg_drop_pct": overall_drop_pct,
             "avg_latency_ms": avg_lat_ms,
             "telemetry": telemetry
         }

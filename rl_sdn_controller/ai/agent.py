@@ -98,9 +98,10 @@ class DQNAgent:
         # Compute Q(s, a)
         current_q = self.policy_net(states_t).gather(1, actions_t)
 
-        # Compute target Q(s', a') using Target Network
+        # Compute target Q(s', a') using Double Q-Learning (DDQN)
         with torch.no_grad():
-            max_next_q = self.target_net(next_states_t).max(1)[0].unsqueeze(1)
+            next_actions = self.policy_net(next_states_t).argmax(dim=1, keepdim=True)
+            max_next_q = self.target_net(next_states_t).gather(1, next_actions)
             target_q = rewards_t + (1.0 - dones_t) * self.gamma * max_next_q
 
         # Smooth L1 / Huber Loss

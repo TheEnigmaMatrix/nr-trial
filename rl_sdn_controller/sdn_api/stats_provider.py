@@ -17,6 +17,7 @@ class LinkStats:
     utilization_pct: float
     drop_rate_pct: float
     avg_latency_ms: float
+    is_up: bool = True
 
 
 class StatsProvider:
@@ -40,6 +41,7 @@ class StatsProvider:
             drop_p = link_q.total_dropped_packets
             q_depth = link_q.queue_depth
             max_q = link_q.max_queue_packets
+            is_up = getattr(link_q, 'is_up', True)
 
             # Utilization % = (transmitted bits / capacity bits) * 100
             cap_bits = (link_q.capacity_mbps * 1_000_000.0) * window_duration_sec
@@ -68,7 +70,8 @@ class StatsProvider:
                 max_queue_packets=max_q,
                 utilization_pct=utilization,
                 drop_rate_pct=drop_rate,
-                avg_latency_ms=avg_lat_ms
+                avg_latency_ms=avg_lat_ms,
+                is_up=is_up
             )
 
         return stats_dict
