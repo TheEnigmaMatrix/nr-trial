@@ -103,19 +103,21 @@ class SDNEnv(gym.Env):
         total_arrived = total_tx_p + total_drop_p
         overall_drop_pct = (total_drop_p / total_arrived * 100.0) if total_arrived > 0 else 0.0
 
-        valid_lats = [st.avg_latency_ms for st in telemetry.values() if st.avg_latency_ms > 0]
-        avg_lat_ms = float(np.mean(valid_lats)) if valid_lats else 0.0
+        # Packet-count-weighted average latency (physically correct: weight by traffic volume)
+        total_lat_weighted = sum(st.avg_latency_ms * st.tx_packets for st in telemetry.values() if st.avg_latency_ms > 0)
+        total_lat_packets = sum(st.tx_packets for st in telemetry.values() if st.avg_latency_ms > 0)
+        avg_lat_ms = total_lat_weighted / total_lat_packets if total_lat_packets > 0 else 0.0
 
         # Normalized metric components in [0, 1]
         norm_tp = total_tx_mbps / 30.0
         norm_drop = overall_drop_pct / 100.0
-        norm_lat = min(1.0, avg_lat_ms / 30.0) # Realistic physical link latencies (15ms - 30ms)
+        norm_lat = min(1.0, avg_lat_ms / 20.0) # 5ms Path A → 0.25, 5.1ms Path B → 0.255
 
         # Balanced Pareto Multi-Objective Reward:
         # +2.0 * Throughput (reward max bits delivered)
         # -10.0 * Packet Drop Rate (heavily penalize packet loss)
-        # -6.0 * Latency (strongly prefer shortest 5.0ms Path A when operational)
-        reward = (2.0 * norm_tp) - (10.0 * norm_drop) - (6.0 * norm_lat)
+        # -8.0 * Latency (prefer lowest-latency Path A when operational)
+        reward = (2.0 * norm_tp) - (10.0 * norm_drop) - (8.0 * norm_lat)
 
         terminated = self.current_step >= self.max_steps
         truncated = False

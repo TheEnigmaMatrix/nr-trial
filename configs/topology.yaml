@@ -44,17 +44,17 @@ links:
     latency: 5000    # microseconds (5.0 ms)
     max_queue_packets: 200
 
-  # Path B: r1 -> r3 -> r4 (Alternative path: 6ms + 6ms = 12ms core delay)
+  # Path B: r1 -> r3 -> r4 (Alternative path: 5.1ms + 5.1ms = 10.2ms core delay)
   - src: r1
     dst: r3
     capacity: 150    # Mbps
-    latency: 6000    # microseconds (6.0 ms)
+    latency: 5100    # microseconds (5.1 ms)
     max_queue_packets: 200
 
   - src: r3
     dst: r4
     capacity: 150
-    latency: 6000    # microseconds (6.0 ms)
+    latency: 5100    # microseconds (5.1 ms)
     max_queue_packets: 200
 
   # Host h2 connections (5 ms propagation delay)

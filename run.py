@@ -32,6 +32,13 @@ console = Console()
 viz = TerminalVisualizer()
 
 
+def packet_weighted_latency(telem):
+    """Compute packet-count-weighted average latency (physically correct metric)."""
+    total_lat_w = sum(st.avg_latency_ms * st.tx_packets for st in telem.values() if st.avg_latency_ms > 0)
+    total_pkt = sum(st.tx_packets for st in telem.values() if st.avg_latency_ms > 0)
+    return total_lat_w / total_pkt if total_pkt > 0 else 0.0
+
+
 def load_configs(chaos_enabled: bool = True):
     top_path = "configs/topology.yaml"
     traffic_path = "configs/traffic_profiles.yaml"
@@ -141,8 +148,7 @@ def evaluate_ospf(chaos: bool):
         telem = sim.stats_provider.collect_window_telemetry(0.1)
         tp = sum((st.tx_bytes * 8.0 / 1_000_000.0) / 0.1 for st in telem.values())
         dr = float(np.mean([st.drop_rate_pct for st in telem.values()])) if telem else 0.0
-        valid_l = [st.avg_latency_ms for st in telem.values() if st.avg_latency_ms > 0]
-        lat = float(np.mean(valid_l)) if valid_l else 0.0
+        lat = packet_weighted_latency(telem)
         tp_list.append(tp)
         drop_list.append(dr)
         lat_list.append(lat)
@@ -174,8 +180,7 @@ def evaluate_round_robin(chaos: bool):
         telem = sim.stats_provider.collect_window_telemetry(0.1)
         tp = sum((st.tx_bytes * 8.0 / 1_000_000.0) / 0.1 for st in telem.values())
         dr = float(np.mean([st.drop_rate_pct for st in telem.values()])) if telem else 0.0
-        valid_l = [st.avg_latency_ms for st in telem.values() if st.avg_latency_ms > 0]
-        lat = float(np.mean(valid_l)) if valid_l else 0.0
+        lat = packet_weighted_latency(telem)
         tp_list.append(tp)
         drop_list.append(dr)
         lat_list.append(lat)

@@ -49,6 +49,13 @@ class LinkQueue:
     def is_full(self) -> bool:
         return len(self.queue) >= self.max_queue_packets
 
+    @property
+    def is_up(self) -> bool:
+        """Returns True if the link is operational (not currently failed by chaos engine)."""
+        if self.chaos_engine:
+            return self.chaos_engine.is_link_up(self.src, self.dst)
+        return True
+
     def enqueue(self, packet: Packet, current_time: float = 0.0) -> bool:
         """Enqueues packet if capacity allows and link is up, otherwise drops it."""
         if self.chaos_engine and not self.chaos_engine.is_link_up(self.src, self.dst):

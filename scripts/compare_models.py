@@ -21,6 +21,13 @@ logger = logging.getLogger("compare_models")
 console = Console()
 
 
+def packet_weighted_latency(telem):
+    """Compute packet-count-weighted average latency (physically correct metric)."""
+    total_lat_w = sum(st.avg_latency_ms * st.tx_packets for st in telem.values() if st.avg_latency_ms > 0)
+    total_pkt = sum(st.tx_packets for st in telem.values() if st.avg_latency_ms > 0)
+    return total_lat_w / total_pkt if total_pkt > 0 else 0.0
+
+
 def evaluate_rl_model(use_dueling: bool, episodes: int, chaos: bool = True):
     """Trains and evaluates an RL agent with the specified model architecture."""
     top_path = "configs/topology.yaml"
@@ -102,8 +109,7 @@ def evaluate_baselines(chaos: bool = True):
         telem = sim_ospf.stats_provider.collect_window_telemetry(0.1)
         tp = sum((st.tx_bytes * 8.0 / 1_000_000.0) / 0.1 for st in telem.values())
         dr = float(np.mean([st.drop_rate_pct for st in telem.values()])) if telem else 0.0
-        valid_l = [st.avg_latency_ms for st in telem.values() if st.avg_latency_ms > 0]
-        lat = float(np.mean(valid_l)) if valid_l else 0.0
+        lat = packet_weighted_latency(telem)
         ospf_tp.append(tp)
         ospf_drops.append(dr)
         ospf_lat.append(lat)
@@ -122,8 +128,7 @@ def evaluate_baselines(chaos: bool = True):
         telem = sim_rr.stats_provider.collect_window_telemetry(0.1)
         tp = sum((st.tx_bytes * 8.0 / 1_000_000.0) / 0.1 for st in telem.values())
         dr = float(np.mean([st.drop_rate_pct for st in telem.values()])) if telem else 0.0
-        valid_l = [st.avg_latency_ms for st in telem.values() if st.avg_latency_ms > 0]
-        lat = float(np.mean(valid_l)) if valid_l else 0.0
+        lat = packet_weighted_latency(telem)
         rr_tp.append(tp)
         rr_drops.append(dr)
         rr_lat.append(lat)
