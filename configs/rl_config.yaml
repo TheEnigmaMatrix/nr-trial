@@ -1,0 +1,22 @@
+# Reinforcement Learning & Control Plane Hyperparameters
+
+agent:
+  learning_rate: 0.0005
+  gamma: 0.99
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+  epsilon_decay: 0.995
+  buffer_capacity: 10000
+  batch_size: 64
+  target_update_freq: 10
+  hidden_dims: [128, 128]
+
+control_plane:
+  update_interval_ms: 100    # Control evaluation cycle duration (10-100ms)
+  telemetry_window_ms: 100
+  max_simulation_steps: 600  # 600 steps * 100ms = 60 seconds simulation
+
+reward_function:
+  throughput_weight: 1.0     # α: reward for transmitted bits
+  drop_rate_weight: -100.0   # β: heavy penalty for packet drops (%)
+  latency_weight: -0.1       # γ: penalty for queueing/propagation delay (ms)

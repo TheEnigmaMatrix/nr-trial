@@ -1,0 +1,29 @@
+# Traffic Profiles Configuration
+# Defines traffic generators, arrival distribution, packet sizes, and flow rates.
+
+flows:
+  - id: flow_h1_h2_primary
+    src: h1
+    dst: h2
+    pattern: poisson
+    rate_pps: 500         # Packets per second
+    packet_size_bytes: 1000
+    duration_sec: 60
+
+  - id: flow_h1_h2_burst
+    src: h1
+    dst: h2
+    pattern: bursty
+    rate_pps: 1200        # High rate during burst (triggers congestion)
+    burst_on_ms: 500
+    burst_off_ms: 1000
+    packet_size_bytes: 1200
+    duration_sec: 60
+
+  - id: flow_h2_h1_reverse
+    src: h2
+    dst: h1
+    pattern: poisson
+    rate_pps: 300
+    packet_size_bytes: 800
+    duration_sec: 60
