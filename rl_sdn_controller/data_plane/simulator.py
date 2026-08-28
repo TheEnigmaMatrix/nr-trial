@@ -93,7 +93,7 @@ class DataPlaneSimulator:
             if len(pkt.hops) > 1:
                 first_hop = (pkt.hops[0], pkt.hops[1])
                 if first_hop in self.links:
-                    self.links[first_hop].enqueue(pkt)
+                    self.links[first_hop].enqueue(pkt, self.current_time)
 
         # 3. Process existing in-flight packets reaching next hop
         still_in_flight: List[Packet] = []
@@ -105,7 +105,7 @@ class DataPlaneSimulator:
                     next_dst = pkt.hops[pkt.current_hop_idx + 1]
                     next_hop = (next_src, next_dst)
                     if next_hop in self.links:
-                        self.links[next_hop].enqueue(pkt)
+                        self.links[next_hop].enqueue(pkt, self.current_time)
                 else:
                     # Packet reached final destination host
                     pkt.arrival_time = self.current_time

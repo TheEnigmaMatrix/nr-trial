@@ -49,7 +49,7 @@ class LinkQueue:
     def is_full(self) -> bool:
         return len(self.queue) >= self.max_queue_packets
 
-    def enqueue(self, packet: Packet) -> bool:
+    def enqueue(self, packet: Packet, current_time: float = 0.0) -> bool:
         """Enqueues packet if capacity allows and link is up, otherwise drops it."""
         if self.chaos_engine and not self.chaos_engine.is_link_up(self.src, self.dst):
             self.total_dropped_packets += 1
@@ -66,6 +66,7 @@ class LinkQueue:
             self.total_dropped_bytes += packet.size_bytes
             return False
         
+        packet.arrival_time = current_time
         self.queue.append(packet)
         return True
 
@@ -93,8 +94,9 @@ class LinkQueue:
                 
                 lat_sec = self.chaos_engine.sample_delay(self.latency_sec) if self.chaos_engine else self.latency_sec
 
-                # Total delay = propagation latency + queueing delay
-                delay = (current_time - pkt.creation_time) + lat_sec
+                # Per-hop link delay = queueing time on this link + propagation latency
+                arr_t = pkt.arrival_time if pkt.arrival_time is not None else current_time
+                delay = (current_time - arr_t) + lat_sec
                 self.latencies_sec.append(delay)
                 self.total_tx_bytes += pkt.size_bytes
                 self.total_tx_packets += 1

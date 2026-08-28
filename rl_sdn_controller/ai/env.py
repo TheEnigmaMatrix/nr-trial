@@ -109,7 +109,7 @@ class SDNEnv(gym.Env):
         # Normalized metric components in [0, 1]
         norm_tp = total_tx_mbps / 30.0
         norm_drop = overall_drop_pct / 100.0
-        norm_lat = min(1.0, avg_lat_ms / 30.0)
+        norm_lat = min(1.0, avg_lat_ms / 0.15) # Calibrated for sub-millisecond per-hop latencies (0.05ms - 0.15ms)
 
         # Balanced Pareto Multi-Objective Reward:
         # +1.0 * Throughput (deliver max bits)
