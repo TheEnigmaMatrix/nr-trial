@@ -36,26 +36,26 @@ links:
     dst: r2
     capacity: 15     # Mbps (Bottleneck link under heavy traffic)
     latency: 5000    # microseconds (5.0 ms)
-    max_queue_packets: 200
+    max_queue_packets: 100
 
   - src: r2
     dst: r4
     capacity: 15     # Mbps
     latency: 5000    # microseconds (5.0 ms)
-    max_queue_packets: 200
+    max_queue_packets: 100
 
   # Path B: r1 -> r3 -> r4 (Alternative path: 5.1ms + 5.1ms = 10.2ms core delay)
   - src: r1
     dst: r3
     capacity: 20     # Mbps
     latency: 5100    # microseconds (5.1 ms)
-    max_queue_packets: 200
+    max_queue_packets: 100
 
   - src: r3
     dst: r4
     capacity: 20     # Mbps
     latency: 5100    # microseconds (5.1 ms)
-    max_queue_packets: 200
+    max_queue_packets: 100
 
   # Host h2 connections (5 ms propagation delay)
   - src: r4

@@ -23,7 +23,7 @@ class LinkQueue:
     propagation delay, FIFO buffer limits, and telemetry tracking.
     Supports optional ChaosEngine for link flapping, jitter, and BER drops.
     """
-    def __init__(self, src: str, dst: str, capacity_mbps: float, latency_us: float, max_queue_packets: int = 200, chaos_engine=None):
+    def __init__(self, src: str, dst: str, capacity_mbps: float, latency_us: float, max_queue_packets: int = 100, chaos_engine=None):
         self.src = src
         self.dst = dst
         self.capacity_mbps = capacity_mbps

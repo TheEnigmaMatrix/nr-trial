@@ -29,7 +29,7 @@ class NetworkTopology:
             dst = link["dst"]
             cap = float(link.get("capacity", 1000.0))
             lat = float(link.get("latency", 100.0))
-            max_q = int(link.get("max_queue_packets", 200))
+            max_q = int(link.get("max_queue_packets", 100))
 
             self.links_info[(src, dst)] = {
                 "capacity": cap,
