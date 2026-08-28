@@ -47,6 +47,10 @@ class ChaosEngine:
             return
 
         for key, state in self.link_states.items():
+            # Only trigger failure outages on inter-router core links (which have candidate backup paths)
+            if key[0].startswith('h') or key[1].startswith('h'):
+                continue
+
             if not state["is_up"]:
                 if current_time >= state["down_until"]:
                     state["is_up"] = True

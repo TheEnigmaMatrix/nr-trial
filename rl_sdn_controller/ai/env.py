@@ -102,21 +102,20 @@ class SDNEnv(gym.Env):
         total_drop_p = sum(st.dropped_packets for st in telemetry.values())
         total_arrived = total_tx_p + total_drop_p
         overall_drop_pct = (total_drop_p / total_arrived * 100.0) if total_arrived > 0 else 0.0
-        max_drop_pct = max([st.drop_rate_pct for st in telemetry.values()]) if telemetry else 0.0
 
         valid_lats = [st.avg_latency_ms for st in telemetry.values() if st.avg_latency_ms > 0]
         avg_lat_ms = float(np.mean(valid_lats)) if valid_lats else 0.0
 
-        max_util_norm = max([st.utilization_pct / 100.0 for st in telemetry.values()]) if telemetry else 0.0
+        # Normalized metric components in [0, 1]
+        norm_tp = total_tx_mbps / 30.0
+        norm_drop = overall_drop_pct / 100.0
+        norm_lat = min(1.0, avg_lat_ms / 30.0)
 
-        # Multi-objective Pareto Reward: High throughput + strong drop penalty + queueing latency penalty + utilization balance
-        reward = (
-            (self.w_throughput * total_tx_mbps)
-            - (200.0 * (overall_drop_pct / 100.0))
-            - (100.0 * (max_drop_pct / 100.0))
-            - (0.3 * avg_lat_ms)
-            - (15.0 * (max_util_norm ** 2))
-        )
+        # Balanced Pareto Multi-Objective Reward:
+        # +1.0 * Throughput (deliver max bits)
+        # -5.0 * Packet Drop Rate (strongly avoid queue overflow & down link drops)
+        # -4.5 * Latency (strongly prefer shortest propagation delay path when operational)
+        reward = (1.0 * norm_tp) - (5.0 * norm_drop) - (4.5 * norm_lat)
 
         terminated = self.current_step >= self.max_steps
         truncated = False
