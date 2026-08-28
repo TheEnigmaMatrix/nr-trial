@@ -6,7 +6,7 @@ flows:
     src: h1
     dst: h2
     pattern: poisson
-    rate_pps: 500         # Packets per second
+    rate_pps: 1200        # ~9.6 Mbps
     packet_size_bytes: 1000
     duration_sec: 60
 
@@ -14,8 +14,8 @@ flows:
     src: h1
     dst: h2
     pattern: bursty
-    rate_pps: 1200        # High rate during burst (triggers congestion)
-    burst_on_ms: 500
+    rate_pps: 1500        # ~14.4 Mbps during burst
+    burst_on_ms: 1000
     burst_off_ms: 1000
     packet_size_bytes: 1200
     duration_sec: 60
@@ -24,6 +24,6 @@ flows:
     src: h2
     dst: h1
     pattern: poisson
-    rate_pps: 300
+    rate_pps: 500         # ~3.2 Mbps
     packet_size_bytes: 800
     duration_sec: 60
