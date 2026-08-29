@@ -22,8 +22,9 @@ class SDNEnv(gym.Env):
     def __init__(self, topology_path: str, traffic_configs: list, rl_config: Dict[str, Any], chaos_config: Dict[str, Any] = None):
         super(SDNEnv, self).__init__()
 
-        self.topology = NetworkTopology(topology_path)
+        self.topology = topology_path if isinstance(topology_path, NetworkTopology) else NetworkTopology(topology_path)
         self.routing_table_api = RoutingTableAPI()
+
         self.simulator = DataPlaneSimulator(self.topology, self.routing_table_api, traffic_configs, chaos_config=chaos_config)
         
         self.flow_ids = list(self.simulator.generators.keys())
@@ -111,23 +112,40 @@ class SDNEnv(gym.Env):
         # Normalized metric components in [0, 1]
         norm_tp = total_tx_mbps / 30.0
         norm_drop = overall_drop_pct / 100.0
-        norm_lat = min(1.0, avg_lat_ms / 20.0) # 5ms Path A → 0.25, 5.1ms Path B → 0.255
+        # Latency normalized over 80ms ceiling:
+        # Dual-path wire delay: 16-22ms -> norm_lat ≈ 0.20-0.28 (small penalty)
+        # Bufferbloat / congestion delay: 50-80ms -> norm_lat ≈ 0.62-1.0 (heavy penalty)
+        norm_lat = min(1.0, avg_lat_ms / 80.0)
 
-        # Balanced Pareto Multi-Objective Reward:
-        # +2.0 * Throughput (reward max bits delivered)
-        # -10.0 * Packet Drop Rate (heavily penalize packet loss)
-        # -8.0 * Latency (prefer lowest-latency Path A when operational)
-        reward = (2.0 * norm_tp) - (10.0 * norm_drop) - (8.0 * norm_lat)
+        # Pareto Multi-Objective Reward (equal weight on speed AND reliability):
+        # +1.5 * Throughput   — reward for bits delivered
+        # -10.0 * Drop Rate   — heavy penalty for packet loss
+        # -10.0 * Latency     — equal penalty for high-latency paths (DQN prefers fast paths)
+        reward = (1.5 * norm_tp) - (10.0 * norm_drop) - (10.0 * norm_lat)
 
         terminated = self.current_step >= self.max_steps
         truncated = False
+
+        chaos_metrics = self.simulator.chaos_engine.get_metrics() if self.simulator.chaos_engine else {}
 
         info = {
             "step": self.current_step,
             "total_throughput_mbps": total_tx_mbps,
             "avg_drop_pct": overall_drop_pct,
             "avg_latency_ms": avg_lat_ms,
-            "telemetry": telemetry
+            "telemetry": telemetry,
+            "chaos_metrics": chaos_metrics
         }
 
         return obs, float(reward), terminated, truncated, info
+
+    def inject_link_failure(self, src: str, dst: str, duration_sec: float = 2.0):
+        """Manually triggers a link failure for fault-tolerance evaluation."""
+        if self.simulator.chaos_engine:
+            self.simulator.chaos_engine.fail_link(src, dst, duration_sec, self.simulator.current_time)
+
+    def heal_link(self, src: str, dst: str):
+        """Manually recovers a failed link."""
+        if self.simulator.chaos_engine:
+            self.simulator.chaos_engine.recover_link(src, dst, self.simulator.current_time)
+

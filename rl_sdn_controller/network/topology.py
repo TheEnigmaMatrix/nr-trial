@@ -17,10 +17,17 @@ class NetworkTopology:
         self._load_topology()
 
     def _load_topology(self):
-        with open(self.config_path, 'r') as f:
-            data = yaml.safe_load(f)
+        if isinstance(self.config_path, dict):
+            data = self.config_path
+        elif isinstance(self.config_path, str) and ("\n" in self.config_path or "nodes:" in self.config_path):
+            data = yaml.safe_load(self.config_path)
+        else:
+            with open(self.config_path, 'r') as f:
+                data = yaml.safe_load(f)
 
+        self.topology_dict = data
         self.nodes_info = data.get("nodes", {})
+
         for node_id, attrs in self.nodes_info.items():
             self.graph.add_node(node_id, **attrs)
 

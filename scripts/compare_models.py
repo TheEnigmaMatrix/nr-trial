@@ -1,12 +1,12 @@
-#!/usr/bin/env python3
-"""
-Model Architecture Comparison Script: Standard DQN vs. Dueling DQN vs. OSPF vs. Round-Robin
-Evaluates performance under optional Network Chaos.
-"""
+import sys
+import os
 import copy
 import yaml
 import logging
 import numpy as np
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from rich.console import Console
 from rich.table import Table
 
@@ -19,6 +19,7 @@ from rl_sdn_controller.network.routing_engine import OSPFRoutingEngine, RoundRob
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("compare_models")
 console = Console()
+
 
 
 def packet_weighted_latency(telem):

@@ -51,10 +51,16 @@ class DataPlaneSimulator:
 
         # Transit buffer for packets currently in transit across links
         self.in_flight_packets: List[Packet] = []
+        # Fully delivered packets (reached final destination host) — cleared each step
+        self.delivered_packets: List[Packet] = []
+        # Packets dropped this step (at any hop) — cleared each step
+        self.step_dropped_packets: int = 0
 
     def reset(self):
         self.current_time = 0.0
         self.in_flight_packets.clear()
+        self.delivered_packets.clear()
+        self.step_dropped_packets = 0
         if self.chaos_engine:
             self.chaos_engine.reset()
         for link_q in self.links.values():
@@ -89,11 +95,14 @@ class DataPlaneSimulator:
                 new_packets.append(pkt)
 
         # 2. Process newly generated packets onto their first hop queue
+        self.step_dropped_packets = 0  # Reset per-step drop counter
         for pkt in new_packets:
             if len(pkt.hops) > 1:
                 first_hop = (pkt.hops[0], pkt.hops[1])
                 if first_hop in self.links:
-                    self.links[first_hop].enqueue(pkt, self.current_time)
+                    dropped = not self.links[first_hop].enqueue(pkt, self.current_time)
+                    if dropped:
+                        self.step_dropped_packets += 1
 
         # 3. Process existing in-flight packets reaching next hop
         still_in_flight: List[Packet] = []
@@ -105,7 +114,11 @@ class DataPlaneSimulator:
                     next_dst = pkt.hops[pkt.current_hop_idx + 1]
                     next_hop = (next_src, next_dst)
                     if next_hop in self.links:
-                        self.links[next_hop].enqueue(pkt, self.current_time)
+                        dropped = not self.links[next_hop].enqueue(pkt, self.current_time)
+                        if dropped:
+                            self.step_dropped_packets += 1
+                    else:
+                        self.step_dropped_packets += 1  # No route available
                 else:
                     # Packet reached final destination host
                     pkt.arrival_time = self.current_time
@@ -115,9 +128,16 @@ class DataPlaneSimulator:
         self.in_flight_packets = still_in_flight
 
         # 4. Transmit packets from all link queues based on link capacity
+        self.delivered_packets.clear()  # Fresh per-step delivery list
         for (src, dst), link_q in self.links.items():
             delivered_pkts = link_q.process_transmissions(self.current_time, delta_time)
-            self.in_flight_packets.extend(delivered_pkts)
+            for pkt in delivered_pkts:
+                # Check if this packet has just crossed its LAST hop (arrived at destination)
+                if pkt.current_hop_idx >= len(pkt.hops) - 2:
+                    pkt.arrival_time = self.current_time
+                    self.delivered_packets.append(pkt)
+                else:
+                    self.in_flight_packets.append(pkt)
 
     async def run_async(self, duration_sec: float, step_interval_sec: float = 0.01):
         """Asynchronous execution loop for real-time simulation runs."""

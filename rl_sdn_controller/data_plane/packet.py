@@ -9,12 +9,13 @@ class Packet:
     src: str
     dst: str
     size_bytes: int
-    creation_time: float      # Virtual timestamp in seconds
+    creation_time: float      # Virtual timestamp in seconds when packet was born
     seq_id: int = 0
     hops: List[str] = field(default_factory=list)
     current_hop_idx: int = 0
-    arrival_time: Optional[float] = None
+    arrival_time: Optional[float] = None    # Time packet arrived at current link queue
     transmission_time: Optional[float] = None
+    e2e_latency_ms: float = 0.0             # Accumulated end-to-end latency across ALL hops (ms)
 
 
 class LinkQueue:
@@ -72,8 +73,8 @@ class LinkQueue:
             self.total_dropped_packets += 1
             self.total_dropped_bytes += packet.size_bytes
             return False
-        
-        packet.arrival_time = current_time
+
+        packet.arrival_time = current_time  # Time entered THIS link queue
         self.queue.append(packet)
         return True
 
@@ -98,15 +99,21 @@ class LinkQueue:
             if bytes_processed + pkt.size_bytes <= bytes_capacity or bytes_processed == 0:
                 pkt = self.queue.pop(0)
                 bytes_processed += pkt.size_bytes
-                
+
                 lat_sec = self.chaos_engine.sample_delay(self.latency_sec) if self.chaos_engine else self.latency_sec
 
-                # Per-hop link delay = queueing time on this link + propagation latency
+                # Per-hop latency = queuing wait time on THIS link + propagation delay
                 arr_t = pkt.arrival_time if pkt.arrival_time is not None else current_time
-                delay = (current_time - arr_t) + lat_sec
-                self.latencies_sec.append(delay)
+                queueing_delay = max(0.0, current_time - arr_t)
+                hop_latency_sec = queueing_delay + lat_sec
+
+                self.latencies_sec.append(hop_latency_sec)
                 self.total_tx_bytes += pkt.size_bytes
                 self.total_tx_packets += 1
+
+                # Accumulate into end-to-end latency tracker on the packet itself
+                pkt.e2e_latency_ms += hop_latency_sec * 1000.0
+
                 pkt.transmission_time = current_time + lat_sec
                 delivered.append(pkt)
             else:
